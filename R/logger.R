@@ -161,7 +161,7 @@ NULL
 # <environment: namespace:lambda.r>
 flog.namespace <- function(.where=-4)
 {
-  sf <- sys.function(.where - 1)
+  sf <- sys.function(.where - 0)
   s <- format(topenv(environment(sf)))
   if (length(grep('lambda.r',s)) > 0)
     s <- attr(sys.function(-5), 'topenv')
@@ -217,35 +217,34 @@ ftry <- function(expr, error=stop, finally=NULL) {
 }
 
 # By default, use the package namespace or use the 'ROOT' logger.
-flog.logger() %as%
-{
-  flog.logger(flog.namespace())
-}
-
-flog.logger(name) %as%
-{
+flog.logger <- function(name, ...) {
+ 
+  if(!missing(...)) {
+    return(flog.logger.options(name, ...))
+  }
+  
   if (nchar(name) < 1) name <- 'ROOT'
   #cat(sprintf("Searching for logger %s\n", name))
-
+  
   key <- paste("logger", name, sep='.')
   # TODO: Search hierarchy
   os <- logger.options(key)
   if (! is.null(os)) return(os)
   if (name == 'ROOT') {
     logger <- list(name=name,
-      threshold=INFO, 
-      appender=appender.console(),
-      layout=layout.simple)
+                   threshold=INFO, 
+                   appender=appender.console(),
+                   layout=layout.simple)
     logger.options(update=list(key, logger))
     return(logger)
   }
-
+  
   parts <- strsplit(name, '.', fixed=TRUE)[[1]]
   parent <- paste(parts[1:length(parts)-1], collapse='.')
   flog.logger(parent)
 }
 
-flog.logger(name, threshold=NULL, appender=NULL, layout=NULL, carp=NULL) %as%
+flog.logger.options <- function(name, threshold=NULL, appender=NULL, layout=NULL, carp=NULL) 
 {
   logger <- flog.logger(name)
   if (!is.null(threshold)) logger$threshold <- threshold
@@ -257,7 +256,6 @@ flog.logger(name, threshold=NULL, appender=NULL, layout=NULL, carp=NULL) %as%
   logger.options(update=list(key, logger))
   invisible()
 }
-
 
 #' Remove a logger
 #' 
@@ -278,11 +276,12 @@ flog.logger(name, threshold=NULL, appender=NULL, layout=NULL, carp=NULL) %as%
 #' flog.info("Won't print", name='my.logger')
 #' flog.remove('my.logger')
 #' flog.info("Will print", name='my.logger')
-flog.remove('ROOT') %as% { invisible() }
-flog.remove(name) %as% 
+flog.remove <- function(name) 
 {
-  key <- paste("logger", name, sep='.')
-  logger.options(update=list(key, NULL))
+  if(!identical(name, 'ROOT')) {
+    key <- paste("logger", name, sep='.')
+    logger.options(update=list(key, NULL))
+  }
   invisible()
 }
 
@@ -296,7 +295,6 @@ flog.remove(name) %as%
 #' Otherwise the command will silently return.
 #'
 #' @section Usage:
-#' # Get the threshold for the given logger\cr
 #' flog.threshold(name) \%::\% character : character \cr
 #' flog.threshold(name=ROOT)
 #'
@@ -314,33 +312,28 @@ flog.remove(name) %as%
 #' flog.threshold(INFO)
 #' flog.info("Will print")
 # Set the threshold
-flog.threshold('TRACE', name='ROOT') %as% flog.threshold(TRACE, name)
-flog.threshold('trace', name='ROOT') %as% flog.threshold(TRACE, name)
-flog.threshold('DEBUG', name='ROOT') %as% flog.threshold(DEBUG, name)
-flog.threshold('debug', name='ROOT') %as% flog.threshold(DEBUG, name)
-flog.threshold('INFO', name='ROOT') %as% flog.threshold(INFO, name)
-flog.threshold('info', name='ROOT') %as% flog.threshold(INFO, name)
-flog.threshold('WARN', name='ROOT') %as% flog.threshold(WARN, name)
-flog.threshold('warn', name='ROOT') %as% flog.threshold(WARN, name)
-flog.threshold('ERROR', name='ROOT') %as% flog.threshold(ERROR, name)
-flog.threshold('error', name='ROOT') %as% flog.threshold(ERROR, name)
-flog.threshold('FATAL', name='ROOT') %as% flog.threshold(FATAL, name)
-flog.threshold('fatal', name='ROOT') %as% flog.threshold(FATAL, name)
 
     
-flog.threshold(threshold, name) %::% numeric : character : .
-flog.threshold(threshold, name='ROOT') %as%
+flog.threshold <- function(threshold, name='ROOT')
 {
-  flog.logger(name, threshold=threshold)
-  invisible()
-}
-
-# Get the threshold
-flog.threshold(name) %::% character : character
-flog.threshold(name='ROOT') %as%
-{
-  logger <- flog.logger(name)
-  names(logger$threshold)
+  if(is.character(threshold)) {
+    threshold <- switch(toupper(threshold),
+                        TRACE = TRACE,
+                        DEBUG = DEBUG,
+                        INFO = INFO,
+                        WARN = WARN,
+                        ERROR = ERROR,
+                        FATAL = FATAL)
+  }
+  
+  if(missing(threshold)) {
+    logger <- flog.logger(name)
+    names(logger$threshold)
+    
+  } else  if(name == "ROOT") {
+    flog.logger(name, threshold=threshold)
+    invisible()
+  }
 }
 
 
@@ -373,20 +366,14 @@ flog.threshold(name='ROOT') %as%
 #' x <- flog.debug("Returns this message but won't print")
 #' flog.carp(FALSE)
 #' y <- flog.debug("Returns nothing and prints nothing")
-flog.carp(name) %::% character : logical
-flog.carp(name='ROOT') %as%
+flog.carp <- function(carp, name='ROOT') 
 {
-  logger <- flog.logger(name)
-  if (is.null(logger$carp)) FALSE
-  else logger$carp
+  if(missing(carp)) {
+    flog.logger(name, carp=carp)
+    invisible()
+  } else {
+    logger <- flog.logger(name)
+    if (is.null(logger$carp)) FALSE
+    else logger$carp
+  }
 }
-
-# Set whether to carp
-flog.carp(carp, name='ROOT') %as%
-{
-  flog.logger(name, carp=carp)
-  invisible()
-}
-
-
-

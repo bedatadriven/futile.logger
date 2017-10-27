@@ -84,18 +84,17 @@
 #' }
 
 # Get appenders associated with the given logger
-flog.appender(name) %::% character : Function
-flog.appender(name='ROOT') %as%
-{
-  logger <- flog.logger(name)
-  logger$appender
-}
-
 # Set the appender for the given logger
-flog.appender(fn, name='ROOT') %as%
+flog.appender <- function(...)
 {
-  flog.logger(name, appender=fn)
-  invisible()
+  args <- list(...)
+  if(length(args) == 1) {
+     logger <- flog.logger(args[[1]])
+     logger$appender
+  } else {
+     flog.logger(name, appender=fn)
+     invisible()
+  }
 }
 
 # Some default handlers for use in futile.logger. All handlers need to conform

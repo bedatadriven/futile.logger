@@ -9,7 +9,6 @@ Depends:
     R (>= 3.0.0)
 Imports:
     utils,
-    lambda.r (>= 1.1.0),
     futile.options
 Suggests:
     testthat,

@@ -93,19 +93,18 @@
 #' flog.info(x, name='tracer')
 NULL
 
-# Get the layout for the given logger
-flog.layout(name) %::% character : Function
-flog.layout(name='ROOT') %as%
+# Get or set the layout for the given logger
+flog.layout <- function(...) 
 {
-  logger <- flog.logger(name)
-  logger$layout
-}
-
-# Set the layout
-flog.layout(fn, name='ROOT') %as%
-{
-  flog.logger(name, layout=fn)
-  invisible()
+  args <- list(...)
+  if(length(args) == 1 && is.character(args[[1]])) {
+     logger <- flog.logger(args[[1]])
+     logger$layout
+  } else {
+    invisible(function(fn, name = 'ROOT') {
+      flog.logger(name, layout=fn)
+    }(...))
+  }
 }
 
 # This file provides some standard formatters
